@@ -1,11 +1,16 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from app.database.database import get_db, engine
 from app.models import models
 from app.schemas import schemas
 from app.services.hotzone_service import HotzoneService
+from app.services.user_service import UserService
+from app.services.photo_service import PhotoService
 from typing import List
 import uvicorn
+from pathlib import Path
+import shutil
+from starlette.responses import FileResponse
 
 # 데이터베이스 테이블 생성
 models.Base.metadata.create_all(bind=engine)
@@ -18,10 +23,100 @@ app = FastAPI(
 
 # 서비스 인스턴스
 hotzone_service = HotzoneService()
+user_service = UserService()
+photo_service = PhotoService()
 
 @app.get("/")
 def read_root():
     return {"message": "실종아동 찾기 백엔드 API"}
+
+# ===== 사진 업로드 API =====
+
+@app.post("/photos/upload/{user_id}", response_model=schemas.PhotoUploadResponse)
+async def upload_photo(
+    user_id: int,
+    file: UploadFile = File(...),
+    image_type: str = Form(...),
+    description: str = Form(None),
+    is_primary: bool = Form(False),
+    db: Session = Depends(get_db)
+):
+    """사진 업로드"""
+    photo_data = schemas.PhotoUploadRequest(
+        image_type=image_type,
+        description=description,
+        is_primary=is_primary
+    )
+    
+    result = photo_service.upload_photo(db, user_id, file, photo_data)
+    return result
+
+@app.get("/photos/user/{user_id}", response_model=List[schemas.Photo])
+def get_user_photos(user_id: int, db: Session = Depends(get_db)):
+    """사용자의 사진 목록 조회"""
+    photos = photo_service.get_user_photos(db, user_id)
+    return photos
+
+@app.get("/photos/{photo_id}", response_model=schemas.Photo)
+def get_photo(photo_id: int, db: Session = Depends(get_db)):
+    """사진 상세 조회"""
+    photo = photo_service.get_photo(db, photo_id)
+    if not photo:
+        raise HTTPException(status_code=404, detail="사진을 찾을 수 없습니다")
+    return photo
+
+@app.put("/photos/{photo_id}")
+def update_photo(
+    photo_id: int,
+    photo_data: schemas.PhotoUpdate,
+    db: Session = Depends(get_db)
+):
+    """사진 정보 수정"""
+    result = photo_service.update_photo(db, photo_id, photo_data)
+    return result
+
+@app.delete("/photos/{photo_id}")
+def delete_photo(photo_id: int, db: Session = Depends(get_db)):
+    """사진 삭제"""
+    result = photo_service.delete_photo(db, photo_id)
+    return result
+
+@app.get("/photos/{user_id}/{filename}")
+async def serve_photo(user_id: int, filename: str):
+    """사진 파일 서빙"""
+    file_path = Path(f"uploads/{user_id}/{filename}")
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="파일을 찾을 수 없습니다")
+    
+    return FileResponse(file_path)
+
+# ===== 간단한 내정보 등록 API =====
+
+@app.post("/user-info/", response_model=schemas.UserInfoResponse)
+def create_user_info(user_info: schemas.UserCreate, db: Session = Depends(get_db)):
+    """내정보 등록 (성명, 연락처, 나이, 성별, 실종 위치 - 필수)"""
+    result = user_service.create_user_info(db, user_info)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+@app.get("/user-info/{user_id}")
+def get_user_info(user_id: int, db: Session = Depends(get_db)):
+    """내정보 조회"""
+    result = user_service.get_user_info(db, user_id)
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
+    return result
+
+@app.put("/user-info/{user_id}")
+def update_user_info(user_id: int, user_info: schemas.UserUpdate, db: Session = Depends(get_db)):
+    """내정보 수정"""
+    result = user_service.update_user_info(db, user_id, user_info)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+# ===== 기존 API들 =====
 
 # 사용자 관련 API
 @app.post("/users/", response_model=schemas.User)

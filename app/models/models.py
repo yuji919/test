@@ -4,25 +4,18 @@ from sqlalchemy.sql import func
 from app.database.database import Base
 
 class User(Base):
-    """사용자 정보 테이블 (보호자 정보)"""
+    """사용자 정보 테이블 (간단한 내정보 등록)"""
     __tablename__ = "users"
     
     id = Column(Integer, primary_key=True, index=True)
-    guardian_name = Column(String(100), nullable=False, comment="보호자 성명")
-    guardian_phone = Column(String(20), nullable=False, comment="보호자 연락처")
-    child_name = Column(String(100), nullable=False, comment="아이 이름")
-    child_gender = Column(String(10), nullable=False, comment="아이 성별 (남/여)")
-    child_birth_date = Column(String(20), nullable=False, comment="아이 생년월일")
-    child_characteristics = Column(Text, comment="아이 특징")
-    child_height = Column(Float, comment="아이 키 (cm)")
-    child_weight = Column(Float, comment="아이 몸무게 (kg)")
-    child_clothing = Column(Text, comment="아이 옷차림")
+    name = Column(String(100), nullable=False, comment="성명")
+    phone = Column(String(20), nullable=False, comment="연락처")
+    age = Column(Integer, nullable=False, comment="나이")
+    gender = Column(String(10), nullable=False, comment="성별 (남/여)")
+    missing_location = Column(String(500), nullable=False, comment="실종 위치")
     
-    # 자주 가는 곳들 (1:1 관계)
-    frequent_places = relationship("FrequentPlace", back_populates="user")
-    
-    # 실종아동 정보 (1:1 관계)
-    missing_child = relationship("MissingChild", back_populates="user")
+    # 사진 정보와의 관계 (1:N)
+    photos = relationship("Photo", back_populates="user")
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
@@ -55,7 +48,7 @@ class FrequentPlace(Base):
     place4_longitude = Column(Float, comment="자주 가는 곳 4 경도")
     
     # User와의 관계
-    user = relationship("User", back_populates="frequent_places")
+    user = relationship("User")
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
@@ -79,7 +72,7 @@ class MissingChild(Base):
     status = Column(String(20), default="missing", comment="상태 (missing/found)")
     
     # User와의 관계
-    user = relationship("User", back_populates="missing_child")
+    user = relationship("User")
     
     # 핫존 정보와의 관계
     hotzones = relationship("Hotzone", back_populates="missing_child")
@@ -147,6 +140,38 @@ class EmergencyContact(Base):
     
     # 활성화 상태
     is_active = Column(Boolean, default=True, comment="활성화 상태")
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+class Photo(Base):
+    """사진 정보 테이블"""
+    __tablename__ = "photos"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    
+    # 파일 정보
+    filename = Column(String(255), nullable=False, comment="파일명")
+    original_filename = Column(String(255), nullable=False, comment="원본 파일명")
+    file_path = Column(String(500), nullable=False, comment="파일 경로")
+    file_size = Column(Integer, comment="파일 크기 (bytes)")
+    
+    # 이미지 정보
+    image_type = Column(String(50), comment="이미지 타입 (profile/missing/evidence)")
+    description = Column(Text, comment="사진 설명")
+    
+    # 메타데이터
+    width = Column(Integer, comment="이미지 너비")
+    height = Column(Integer, comment="이미지 높이")
+    mime_type = Column(String(100), comment="MIME 타입")
+    
+    # 상태
+    is_active = Column(Boolean, default=True, comment="활성화 상태")
+    is_primary = Column(Boolean, default=False, comment="대표 사진 여부")
+    
+    # User와의 관계
+    user = relationship("User", back_populates="photos")
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

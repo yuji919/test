@@ -1,123 +1,112 @@
 # 실종아동 찾기 백엔드 API
 
-실종아동 찾기를 위한 핫존 생성 및 관리 백엔드 API입니다.
+실종아동 찾기를 위한 핫존 생성 및 사용자 정보 관리 백엔드 API입니다.
 
-## 프로젝트 구조
+## 🚀 주요 기능
 
+- **사용자 정보 관리**: 보호자 및 아이 정보 단계별 입력
+- **사진 업로드**: 프로필, 실종 증거, 기타 증거 사진 관리
+- **핫존 생성**: 나이대별 맞춤 핫존 알고리즘
+- **공지사항 관리**: 앱 사용 안내 및 업데이트 정보
+- **긴급 연락처**: 112, 182 등 긴급 연락처 정보
+
+## 📋 기술 스택
+
+- **Framework**: FastAPI
+- **Database**: SQLite (SQLAlchemy ORM)
+- **Image Processing**: Pillow
+- **File Upload**: python-multipart
+
+## 🛠️ 설치 및 실행
+
+### 1. 저장소 클론
+```bash
+git clone https://github.com/your-username/missing-children-backend.git
+cd missing-children-backend
 ```
-missing_children_backend/
-├── app/
-│   ├── __init__.py
-│   ├── database/
-│   │   ├── __init__.py
-│   │   └── database.py          # 데이터베이스 연결 설정
-│   ├── models/
-│   │   ├── __init__.py
-│   │   └── models.py            # SQLAlchemy 모델 정의
-│   ├── schemas/
-│   │   ├── __init__.py
-│   │   └── schemas.py           # Pydantic 스키마 정의
-│   └── services/
-│       ├── __init__.py
-│       └── hotzone_service.py   # 핫존 생성 로직
-├── main.py                      # FastAPI 메인 애플리케이션
-├── init_db.py                   # 데이터베이스 초기화 스크립트
-├── requirements.txt              # Python 패키지 의존성
-└── README.md                    # 프로젝트 설명서
+
+### 2. 가상환경 생성 및 활성화
+```bash
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
 ```
 
-## 데이터베이스 설계
-
-### 1. User 테이블 (사용자 정보)
-- 보호자 정보 (이름, 연락처)
-- 아이 정보 (이름, 성별, 생년월일, 특징, 키, 몸무게, 옷차림)
-
-### 2. FrequentPlace 테이블 (자주 가는 곳)
-- 사용자별 자주 가는 곳 4곳 저장
-- 각 장소의 이름, 주소, 좌표 정보
-
-### 3. MissingChild 테이블 (실종아동 정보)
-- 실종 날짜, 위치, 좌표
-- 아이 나이, 추가 설명
-- 실종 상태 (missing/found)
-
-### 4. Hotzone 테이블 (핫존 정보)
-- 실종아동별 핫존 장소 정보
-- 장소명, 유형, 주소, 좌표
-- 거리, 핫존 점수, 가중치 정보
-
-### 5. Notice 테이블 (공지사항)
-- 공지사항 제목, 내용
-- 유형, 중요도, 활성화 상태
-
-### 6. EmergencyContact 테이블 (긴급 연락처)
-- 112, 182 등 긴급 연락처 정보
-- 연락처명, 전화번호, 설명
-
-## 핫존 생성 로직
-
-### 나이대별 설정
-1. **1-4세**: 반경 1km, 놀이터, 공원, 유치원, 학교, 키즈카페
-2. **5-8세**: 반경 1.3km, 놀이터, 공원, 유치원, 학교, 주거지역
-3. **9-11세**: 반경 3.2km, 놀이터, 공원, 학교, 주거지역
-4. **12-14세**: 반경 8km, 공원, 학교, 대학, 상업시설
-5. **15-16세**: 반경 23km, 학교, 대학, 대중교통, 상업시설
-
-### 핫존 점수 계산
-- **이용도 점수**: 장소별 가중치 / (거리 + 0.1)
-- **위험도 점수**: 장소별 위험도 가중치 × (거리 + 1)
-- **최종 점수**: 이용도 점수 - 위험도 점수
-
-## 설치 및 실행
-
-### 1. 의존성 설치
+### 3. 의존성 설치
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. 데이터베이스 초기화
+### 4. 데이터베이스 초기화
 ```bash
 python init_db.py
 ```
 
-### 3. 서버 실행
+### 5. 서버 실행
 ```bash
 python main.py
 ```
 
-## API 엔드포인트
+서버가 `http://localhost:8000`에서 실행됩니다.
 
-### 사용자 관리
-- `POST /users/` - 사용자 정보 생성
-- `GET /users/{user_id}` - 사용자 정보 조회
-- `PUT /users/{user_id}` - 사용자 정보 수정
+## 📚 API 문서
 
-### 자주 가는 곳
-- `POST /frequent-places/` - 자주 가는 곳 정보 생성
-- `GET /frequent-places/{user_id}` - 자주 가는 곳 정보 조회
+- **Swagger UI**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
 
-### 핫존 관리
+## 🔧 API 엔드포인트
+
+### 사용자 정보 입력
+- `POST /user-info/step1/` - 보호자 기본 정보
+- `PUT /user-info/{user_id}/step2/` - 아이 기본 정보
+- `PUT /user-info/{user_id}/step3/` - 아이 상세 정보
+- `PUT /user-info/{user_id}/step4/` - 자주 가는 곳
+- `PUT /user-info/{user_id}/step5/` - 실종 정보
+- `GET /user-info/{user_id}/progress/` - 진행 상황 조회
+
+### 사진 업로드
+- `POST /photos/upload/{user_id}` - 사진 업로드
+- `GET /photos/user/{user_id}` - 사용자 사진 목록
+- `PUT /photos/{photo_id}` - 사진 정보 수정
+- `DELETE /photos/{photo_id}` - 사진 삭제
+
+### 기타 API
+- `GET /emergency-contacts/` - 긴급 연락처
+- `GET /notices/` - 공지사항
 - `POST /hotzones/create/` - 핫존 생성
-- `GET /hotzones/{missing_child_id}` - 핫존 목록 조회
 
-### 공지사항
-- `GET /notices/` - 공지사항 목록 조회
-- `GET /notices/{notice_id}` - 공지사항 상세 조회
+## 📁 프로젝트 구조
 
-### 긴급 연락처
-- `GET /emergency-contacts/` - 긴급 연락처 목록 조회
+```
+missing_children_backend/
+├── app/
+│   ├── database/          # 데이터베이스 연결
+│   ├── models/           # SQLAlchemy 모델
+│   ├── schemas/          # Pydantic 스키마
+│   └── services/         # 비즈니스 로직
+├── main.py               # FastAPI 애플리케이션
+├── init_db.py            # 데이터베이스 초기화
+├── requirements.txt      # Python 의존성
+└── README.md            # 프로젝트 문서
+```
 
-## 핵심 기능
+## 🔗 프론트엔드 연동
 
-1. **사용자 정보 관리**: 보호자와 아이 정보 저장
-2. **핫존 생성**: 나이대별 맞춤 핫존 생성
-3. **공지사항 관리**: 실종아동 관련 공지사항 제공
-4. **긴급 연락처**: 112, 182 등 긴급 연락처 정보 제공
+프론트엔드 연동을 위한 상세 가이드는 다음 문서를 참고하세요:
+- [프론트엔드 연동 가이드](FRONTEND_INTEGRATION_GUIDE.md)
+- [API 엔드포인트 요약](API_ENDPOINTS_SUMMARY.md)
 
-## 기술 스택
+## 🤝 기여하기
 
-- **Framework**: FastAPI
-- **Database**: SQLAlchemy (SQLite/PostgreSQL)
-- **Geocoding**: Geopy, Nominatim
-- **Map Data**: OSMnx, OpenStreetMap
-- **Validation**: Pydantic
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## 📄 라이선스
+
+이 프로젝트는 MIT 라이선스 하에 배포됩니다. 자세한 내용은 `LICENSE` 파일을 참고하세요.
+
+## 📞 문의
+
+프로젝트에 대한 문의사항이 있으시면 이슈를 생성해주세요.
